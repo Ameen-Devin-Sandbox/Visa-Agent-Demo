@@ -46,6 +46,72 @@ def get_brain() -> DisputeBrain:
     return _brain
 
 
+def _build_task_from_request(request: SubmitDisputeRequest) -> DisputeTask:
+    """Convert an API request into a domain DisputeTask."""
+    transaction = Transaction(
+        transaction_id=request.transaction.transaction_id,
+        transaction_date=request.transaction.transaction_date,
+        processing_date=request.transaction.processing_date,
+        amount=request.transaction.amount,
+        currency=request.transaction.currency,
+        merchant_name=request.transaction.merchant_name,
+        merchant_category_code=request.transaction.merchant_category_code,
+        merchant_country=request.transaction.merchant_country,
+        acquirer_bin=request.transaction.acquirer_bin,
+        issuer_bin=request.transaction.issuer_bin,
+        card_number_masked=request.transaction.card_number_masked,
+        environment=request.transaction.environment,
+        is_chip_transaction=request.transaction.is_chip_transaction,
+        is_chip_reading_device=request.transaction.is_chip_reading_device,
+        is_contactless=request.transaction.is_contactless,
+        is_recurring=request.transaction.is_recurring,
+        is_ecommerce=request.transaction.is_ecommerce,
+        authorization_code=request.transaction.authorization_code,
+        authorization_response_code=request.transaction.authorization_response_code,
+        was_authorized=request.transaction.was_authorized,
+        pos_entry_mode=request.transaction.pos_entry_mode,
+        has_full_chip_data=request.transaction.has_full_chip_data,
+        is_visa_secure=request.transaction.is_visa_secure,
+        region=request.transaction.region,
+    )
+
+    cardholder = CardholderInfo(
+        cardholder_id=request.cardholder.cardholder_id,
+        account_status=request.cardholder.account_status,
+        card_type=request.cardholder.card_type,
+        is_chip_card=request.cardholder.is_chip_card,
+        has_signed_letter=request.cardholder.has_signed_letter,
+        attempted_merchant_resolution=request.cardholder.attempted_merchant_resolution,
+        financial_loss_confirmed=request.cardholder.financial_loss_confirmed,
+    )
+
+    evidence = [
+        EvidenceItem(
+            evidence_type=e.evidence_type,
+            description=e.description,
+            document_reference=e.document_reference,
+            is_compelling=e.is_compelling,
+        )
+        for e in request.evidence
+    ]
+
+    return DisputeTask(
+        dispute_category=request.dispute_category,
+        dispute_condition=request.dispute_condition,
+        member_role=request.member_role,
+        region=request.region,
+        priority=request.priority,
+        transaction=transaction,
+        cardholder=cardholder,
+        evidence=evidence,
+        issuer_certification=request.issuer_certification,
+        has_cardholder_letter=request.has_cardholder_letter,
+        dispute_amount=request.dispute_amount,
+        dispute_reason=request.dispute_reason,
+        dispute_filing_date=request.dispute_filing_date or date.today(),
+    )
+
+
 @router.get("/health", response_model=HealthResponse)
 async def health_check() -> HealthResponse:
     """Health check endpoint."""
@@ -72,71 +138,7 @@ async def submit_dispute(request: SubmitDisputeRequest) -> SubmitDisputeResponse
     according to Visa Core Rules.
     """
     brain = get_brain()
-
-    # Convert request to domain model
-    transaction = Transaction(
-        transaction_id=request.transaction.transaction_id,
-        transaction_date=request.transaction.transaction_date,
-        processing_date=request.transaction.processing_date,
-        amount=request.transaction.amount,
-        currency=request.transaction.currency,
-        merchant_name=request.transaction.merchant_name,
-        merchant_category_code=request.transaction.merchant_category_code,
-        merchant_country=request.transaction.merchant_country,
-        acquirer_bin=request.transaction.acquirer_bin,
-        issuer_bin=request.transaction.issuer_bin,
-        card_number_masked=request.transaction.card_number_masked,
-        environment=request.transaction.environment,
-        is_chip_transaction=request.transaction.is_chip_transaction,
-        is_chip_reading_device=request.transaction.is_chip_reading_device,
-        is_contactless=request.transaction.is_contactless,
-        is_recurring=request.transaction.is_recurring,
-        is_ecommerce=request.transaction.is_ecommerce,
-        authorization_code=request.transaction.authorization_code,
-        authorization_response_code=request.transaction.authorization_response_code,
-        was_authorized=request.transaction.was_authorized,
-        pos_entry_mode=request.transaction.pos_entry_mode,
-        has_full_chip_data=request.transaction.has_full_chip_data,
-        is_visa_secure=request.transaction.is_visa_secure,
-        region=request.transaction.region,
-    )
-
-    cardholder = CardholderInfo(
-        cardholder_id=request.cardholder.cardholder_id,
-        account_status=request.cardholder.account_status,
-        card_type=request.cardholder.card_type,
-        is_chip_card=request.cardholder.is_chip_card,
-        has_signed_letter=request.cardholder.has_signed_letter,
-        attempted_merchant_resolution=request.cardholder.attempted_merchant_resolution,
-        financial_loss_confirmed=request.cardholder.financial_loss_confirmed,
-    )
-
-    evidence = [
-        EvidenceItem(
-            evidence_type=e.evidence_type,
-            description=e.description,
-            document_reference=e.document_reference,
-            is_compelling=e.is_compelling,
-        )
-        for e in request.evidence
-    ]
-
-    task = DisputeTask(
-        dispute_category=request.dispute_category,
-        dispute_condition=request.dispute_condition,
-        member_role=request.member_role,
-        region=request.region,
-        priority=request.priority,
-        transaction=transaction,
-        cardholder=cardholder,
-        evidence=evidence,
-        issuer_certification=request.issuer_certification,
-        has_cardholder_letter=request.has_cardholder_letter,
-        dispute_amount=request.dispute_amount,
-        dispute_reason=request.dispute_reason,
-        dispute_filing_date=request.dispute_filing_date or date.today(),
-    )
-
+    task = _build_task_from_request(request)
     task_id = await brain.submit_dispute(task)
 
     return SubmitDisputeResponse(
@@ -154,71 +156,7 @@ async def process_dispute_sync(request: SubmitDisputeRequest) -> DecisionRespons
     Useful for testing and real-time processing needs.
     """
     brain = get_brain()
-
-    # Build the task (same as submit_dispute)
-    transaction = Transaction(
-        transaction_id=request.transaction.transaction_id,
-        transaction_date=request.transaction.transaction_date,
-        processing_date=request.transaction.processing_date,
-        amount=request.transaction.amount,
-        currency=request.transaction.currency,
-        merchant_name=request.transaction.merchant_name,
-        merchant_category_code=request.transaction.merchant_category_code,
-        merchant_country=request.transaction.merchant_country,
-        acquirer_bin=request.transaction.acquirer_bin,
-        issuer_bin=request.transaction.issuer_bin,
-        card_number_masked=request.transaction.card_number_masked,
-        environment=request.transaction.environment,
-        is_chip_transaction=request.transaction.is_chip_transaction,
-        is_chip_reading_device=request.transaction.is_chip_reading_device,
-        is_contactless=request.transaction.is_contactless,
-        is_recurring=request.transaction.is_recurring,
-        is_ecommerce=request.transaction.is_ecommerce,
-        authorization_code=request.transaction.authorization_code,
-        authorization_response_code=request.transaction.authorization_response_code,
-        was_authorized=request.transaction.was_authorized,
-        pos_entry_mode=request.transaction.pos_entry_mode,
-        has_full_chip_data=request.transaction.has_full_chip_data,
-        is_visa_secure=request.transaction.is_visa_secure,
-        region=request.transaction.region,
-    )
-
-    cardholder = CardholderInfo(
-        cardholder_id=request.cardholder.cardholder_id,
-        account_status=request.cardholder.account_status,
-        card_type=request.cardholder.card_type,
-        is_chip_card=request.cardholder.is_chip_card,
-        has_signed_letter=request.cardholder.has_signed_letter,
-        attempted_merchant_resolution=request.cardholder.attempted_merchant_resolution,
-        financial_loss_confirmed=request.cardholder.financial_loss_confirmed,
-    )
-
-    evidence = [
-        EvidenceItem(
-            evidence_type=e.evidence_type,
-            description=e.description,
-            document_reference=e.document_reference,
-            is_compelling=e.is_compelling,
-        )
-        for e in request.evidence
-    ]
-
-    task = DisputeTask(
-        dispute_category=request.dispute_category,
-        dispute_condition=request.dispute_condition,
-        member_role=request.member_role,
-        region=request.region,
-        priority=request.priority,
-        transaction=transaction,
-        cardholder=cardholder,
-        evidence=evidence,
-        issuer_certification=request.issuer_certification,
-        has_cardholder_letter=request.has_cardholder_letter,
-        dispute_amount=request.dispute_amount,
-        dispute_reason=request.dispute_reason,
-        dispute_filing_date=request.dispute_filing_date or date.today(),
-    )
-
+    task = _build_task_from_request(request)
     decision = await brain.process_single(task)
 
     return _decision_to_response(decision)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from decimal import Decimal
 
 import structlog
 
@@ -250,7 +251,7 @@ class BaseDisputeAgent(ABC):
             dispute_amount_approved=(
                 task.dispute_amount
                 if outcome == DecisionOutcome.DISPUTE_VALID
-                else task.dispute_amount * __import__("decimal").Decimal("0")
+                else Decimal("0")
             ),
             reasoning=reasoning,
             applicable_rules=rules or [],
