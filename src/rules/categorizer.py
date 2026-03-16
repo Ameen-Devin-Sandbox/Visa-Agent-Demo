@@ -22,6 +22,24 @@ from src.models.enums import (
 
 logger = logging.getLogger(__name__)
 
+# Shared constant: words that indicate the dispute is about physical merchandise,
+# not about the card itself being counterfeit/compromised.
+_MERCHANDISE_CONTEXT_WORDS = [
+    "received",
+    "merchandise",
+    "product",
+    "goods",
+    "item",
+    "watch",
+    "bag",
+    "shoe",
+    "serial number",
+    "authentication",
+    "brand",
+    "quality",
+    "material",
+]
+
 
 @dataclass
 class CategorizationResult:
@@ -135,29 +153,37 @@ def _is_consumer_dispute(case: DisputeCase) -> bool:
     This check runs before fraud/authorization to prevent misrouting cases where
     consumer-dispute keywords (e.g., 'counterfeit merchandise', 'cancelled subscription')
     overlap with fraud or authorization indicators.
+
+    Yields to explicit fraud signals: if ``fraud_type_code`` is set or explicit
+    fraud language ("unauthorized", "fraud", "stolen", etc.) appears in the
+    cardholder statement, this returns False so the fraud path runs instead.
     """
+    # Never override an explicit fraud type code from the issuer
+    if case.fraud_type_code is not None:
+        return False
+
     statement = (case.cardholder.cardholder_statement or "").lower()
     txn = case.transaction
 
+    # If the cardholder explicitly mentions fraud / unauthorized activity,
+    # defer to the fraud categorizer even if consumer signals are also present.
+    explicit_fraud_language = [
+        "unauthorized",
+        "fraud",
+        "did not authorize",
+        "did not make",
+        "stolen",
+        "lost",
+        "not mine",
+        "identity theft",
+    ]
+    if any(word in statement for word in explicit_fraud_language):
+        return False
+
     # Counterfeit merchandise: cardholder received goods that are fake/counterfeit.
     # Distinguished from fraud by context - merchandise-related words nearby.
-    merchandise_context = [
-        "received",
-        "merchandise",
-        "product",
-        "goods",
-        "item",
-        "watch",
-        "bag",
-        "shoe",
-        "serial number",
-        "authentication",
-        "brand",
-        "quality",
-        "material",
-    ]
     if ("counterfeit" in statement or "fake" in statement) and any(
-        word in statement for word in merchandise_context
+        word in statement for word in _MERCHANDISE_CONTEXT_WORDS
     ):
         return True
 
@@ -214,26 +240,9 @@ def _is_fraud_dispute(case: DisputeCase) -> bool:
         return True
 
     # "counterfeit" only counts as fraud when referring to the card, not merchandise
-    if "counterfeit" in statement:
-        merchandise_context = [
-            "received",
-            "merchandise",
-            "product",
-            "goods",
-            "item",
-            "watch",
-            "bag",
-            "shoe",
-            "serial number",
-            "authentication",
-            "brand",
-            "quality",
-            "material",
-        ]
-        if not any(word in statement for word in merchandise_context):
-            return True
-
-    return False
+    return "counterfeit" in statement and not any(
+        word in statement for word in _MERCHANDISE_CONTEXT_WORDS
+    )
 
 
 def _is_authorization_dispute(case: DisputeCase) -> bool:
