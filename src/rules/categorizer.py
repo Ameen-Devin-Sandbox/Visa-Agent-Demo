@@ -2,8 +2,14 @@
 
 Analyzes incoming dispute cases and determines the appropriate dispute
 category and condition based on Visa Core Rules Section 11.6-11.10.
+
+Uses rule-based logic as the primary categorization path, with an optional
+OpenAI-powered fallback for ambiguous cases where confidence is low.
 """
 
+import json
+import logging
+import os
 from dataclasses import dataclass
 
 from src.models.dispute import DisputeCase
@@ -13,6 +19,8 @@ from src.models.enums import (
     FraudTypeCode,
     TransactionEnvironment,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -32,13 +40,30 @@ def categorize_dispute(case: DisputeCase) -> CategorizationResult:
     This implements the decision logic from Visa Core Rules Section 11.6
     to determine the appropriate dispute category and condition.
 
-    The categorization follows this hierarchy:
-    1. Check for fraud indicators (Category 10)
-    2. Check for authorization issues (Category 11)
-    3. Check for processing errors (Category 12)
-    4. Default to consumer disputes (Category 13)
+    The categorization follows this refined hierarchy:
+    1. Check for consumer dispute signals first (to prevent misrouting)
+    2. Check for fraud indicators (Category 10)
+    3. Check for authorization issues (Category 11)
+    4. Check for processing errors (Category 12)
+    5. Default to consumer disputes (Category 13)
+
+    When rule-based confidence is low, an OpenAI-powered fallback is used
+    to improve categorization accuracy.
     """
     alternatives: list[DisputeCondition] = []
+
+    # Priority 0: Check for clear consumer dispute signals that should NOT be
+    # routed to fraud or authorization. This prevents misrouting cases like
+    # "received counterfeit merchandise" (13.4) or "cancelled subscription" (13.2).
+    if _is_consumer_dispute(case):
+        condition, confidence, rationale = _categorize_consumer_dispute(case)
+        return CategorizationResult(
+            category=DisputeCategory.CONSUMER_DISPUTES,
+            condition=condition,
+            confidence=confidence,
+            rationale=rationale,
+            alternative_conditions=alternatives,
+        )
 
     # Priority 1: Fraud disputes (Category 10)
     if _is_fraud_dispute(case):
@@ -78,7 +103,7 @@ def categorize_dispute(case: DisputeCase) -> CategorizationResult:
 
     # Default: Consumer disputes (Category 13)
     condition, confidence, rationale = _categorize_consumer_dispute(case)
-    return CategorizationResult(
+    result = CategorizationResult(
         category=DisputeCategory.CONSUMER_DISPUTES,
         condition=condition,
         confidence=confidence,
@@ -86,14 +111,95 @@ def categorize_dispute(case: DisputeCase) -> CategorizationResult:
         alternative_conditions=alternatives,
     )
 
+    # If rule-based confidence is low, try OpenAI-powered categorization
+    if result.confidence < 0.70:
+        llm_result = _try_llm_categorization(case)
+        if llm_result is not None and llm_result.confidence > result.confidence:
+            logger.info(
+                "LLM categorization overrode rule-based: %s/%s (%.2f) -> %s/%s (%.2f)",
+                result.category.value,
+                result.condition.value,
+                result.confidence,
+                llm_result.category.value,
+                llm_result.condition.value,
+                llm_result.confidence,
+            )
+            return llm_result
+
+    return result
+
+
+def _is_consumer_dispute(case: DisputeCase) -> bool:
+    """Determine if the dispute is clearly a consumer dispute.
+
+    This check runs before fraud/authorization to prevent misrouting cases where
+    consumer-dispute keywords (e.g., 'counterfeit merchandise', 'cancelled subscription')
+    overlap with fraud or authorization indicators.
+    """
+    statement = (case.cardholder.cardholder_statement or "").lower()
+    txn = case.transaction
+
+    # Counterfeit merchandise: cardholder received goods that are fake/counterfeit.
+    # Distinguished from fraud by context - merchandise-related words nearby.
+    merchandise_context = [
+        "received",
+        "merchandise",
+        "product",
+        "goods",
+        "item",
+        "watch",
+        "bag",
+        "shoe",
+        "serial number",
+        "authentication",
+        "brand",
+        "quality",
+        "material",
+    ]
+    if ("counterfeit" in statement or "fake" in statement) and any(
+        word in statement for word in merchandise_context
+    ):
+        return True
+
+    # Cancelled recurring subscription: recurring flag + cancellation language
+    if txn.is_recurring and (
+        "cancel" in statement
+        or "stopped" in statement
+        or "subscription" in statement
+        or "still being charged" in statement
+    ):
+        return True
+
+    # Not as described / defective with merchandise context
+    if "not as described" in statement or "defective" in statement:
+        return True
+
+    # Merchandise not received (strong consumer signal)
+    if (
+        "not received" in statement
+        or "never received" in statement
+        or "did not arrive" in statement
+    ) and "authorize" not in statement:
+        return True
+
+    # Credit/refund not processed
+    return "credit not" in statement or "refund not" in statement or "no refund" in statement
+
 
 def _is_fraud_dispute(case: DisputeCase) -> bool:
-    """Determine if the dispute involves fraud."""
-    # Fraud type code reported
+    """Determine if the dispute involves fraud.
+
+    Checks for fraud indicators while excluding cases that are better
+    classified as consumer disputes (e.g., receiving counterfeit merchandise).
+    """
+    # Fraud type code explicitly reported by issuer - strong fraud signal
     if case.fraud_type_code is not None:
         return True
-    # Cardholder denies authorization/participation
+
     statement = (case.cardholder.cardholder_statement or "").lower()
+
+    # "counterfeit" in a merchandise context is a consumer dispute, not fraud.
+    # Only treat "counterfeit" as fraud when it refers to the card itself.
     fraud_indicators = [
         "unauthorized",
         "fraud",
@@ -101,23 +207,51 @@ def _is_fraud_dispute(case: DisputeCase) -> bool:
         "did not make",
         "stolen",
         "lost",
-        "counterfeit",
         "not mine",
         "identity theft",
     ]
-    return any(indicator in statement for indicator in fraud_indicators)
+    if any(indicator in statement for indicator in fraud_indicators):
+        return True
+
+    # "counterfeit" only counts as fraud when referring to the card, not merchandise
+    if "counterfeit" in statement:
+        merchandise_context = [
+            "received",
+            "merchandise",
+            "product",
+            "goods",
+            "item",
+            "watch",
+            "bag",
+            "shoe",
+            "serial number",
+            "authentication",
+            "brand",
+            "quality",
+            "material",
+        ]
+        if not any(word in statement for word in merchandise_context):
+            return True
+
+    return False
 
 
 def _is_authorization_dispute(case: DisputeCase) -> bool:
-    """Determine if the dispute involves authorization issues."""
+    """Determine if the dispute involves authorization issues.
+
+    A missing authorization_code alone is not sufficient to classify as an
+    authorization dispute - many e-commerce and recurring transactions may
+    not have an explicit auth code in the dispute data. We require additional
+    signals like a declined response code or authorization-specific language.
+    """
     txn = case.transaction
-    # Declined authorization
+    statement = (case.cardholder.cardholder_statement or "").lower()
+
+    # Declined authorization - strong signal
     if txn.authorization_response_code and not txn.authorization_response_code.startswith("0"):
         return True
-    # No authorization code present
-    if txn.authorization_code is None:
-        return True
-    statement = (case.cardholder.cardholder_statement or "").lower()
+
+    # Statement-based authorization indicators
     auth_indicators = [
         "declined",
         "no authorization",
@@ -126,7 +260,33 @@ def _is_authorization_dispute(case: DisputeCase) -> bool:
         "card recovery",
         "late presentment",
     ]
-    return any(indicator in statement for indicator in auth_indicators)
+    if any(indicator in statement for indicator in auth_indicators):
+        return True
+
+    # Missing authorization code is only an auth dispute signal when the
+    # cardholder statement also references authorization issues, or when
+    # there are no stronger consumer/processing signals present.
+    if txn.authorization_code is None:
+        # Don't classify as auth dispute if there are consumer dispute signals
+        consumer_signals = [
+            "cancel",
+            "subscription",
+            "not received",
+            "defective",
+            "counterfeit",
+            "fake",
+            "refund",
+            "return",
+            "not as described",
+            "still being charged",
+            "merchandise",
+        ]
+        if any(signal in statement for signal in consumer_signals):
+            return False
+        # No consumer signals - treat missing auth code as authorization dispute
+        return not txn.is_recurring
+
+    return False
 
 
 def _is_processing_error_dispute(case: DisputeCase) -> bool:
@@ -415,3 +575,110 @@ def _categorize_consumer_dispute(
         0.40,
         "Consumer dispute type unclear; defaulting to merchandise not received. Manual review recommended.",
     )
+
+
+# --- OpenAI-powered categorization fallback ---
+
+_LLM_CATEGORIZATION_PROMPT = """You are a Visa dispute categorization expert. Analyze the following dispute and determine the correct category and condition.
+
+Visa Dispute Categories and Conditions:
+- Category 10 (Fraud): 10.1 EMV Counterfeit, 10.2 EMV Non-Counterfeit, 10.3 Other Fraud Card-Present, 10.4 Other Fraud Card-Absent, 10.5 Visa Fraud Monitoring
+- Category 11 (Authorization): 11.1 Card Recovery Bulletin, 11.2 Declined Authorization, 11.3 No Authorization/Late Presentment
+- Category 12 (Processing Errors): 12.2 Incorrect Transaction Code, 12.3 Incorrect Currency, 12.4 Incorrect Account Number, 12.5 Incorrect Amount, 12.6 Duplicate Processing/Paid by Other Means, 12.7 Invalid Data
+- Category 13 (Consumer Disputes): 13.1 Merchandise Not Received, 13.2 Cancelled Recurring, 13.3 Not as Described/Defective, 13.4 Counterfeit Merchandise, 13.5 Misrepresentation, 13.6 Credit Not Processed, 13.7 Cancelled Merchandise/Services, 13.8 OCT Not Accepted, 13.9 Non-Receipt of Cash at ATM
+
+Dispute Details:
+- Transaction ID: {transaction_id}
+- Amount: {amount} {currency}
+- Merchant: {merchant_name} (MCC: {mcc})
+- Environment: {environment}
+- Is Recurring: {is_recurring}
+- Authorization Code: {auth_code}
+- Authorization Response: {auth_response}
+- Cardholder Statement: {statement}
+- Evidence: {evidence}
+
+Respond with a JSON object containing:
+- "category": the category number as a string (e.g., "10", "11", "12", "13")
+- "condition": the condition code as a string (e.g., "10.4", "13.1")
+- "confidence": a float between 0 and 1
+- "rationale": a brief explanation
+
+Respond ONLY with the JSON object, no other text."""
+
+
+def _try_llm_categorization(case: DisputeCase) -> CategorizationResult | None:
+    """Attempt to categorize a dispute using OpenAI when rule-based confidence is low.
+
+    Returns None if OpenAI is not configured or the call fails.
+    """
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        logger.debug("OpenAI API key not configured; skipping LLM categorization")
+        return None
+
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=api_key)
+
+        evidence_summary = "; ".join(f"{e.evidence_type}: {e.description}" for e in case.evidence)
+
+        prompt = _LLM_CATEGORIZATION_PROMPT.format(
+            transaction_id=case.transaction.transaction_id,
+            amount=case.transaction.amount,
+            currency=case.transaction.currency,
+            merchant_name=case.transaction.merchant_name,
+            mcc=case.transaction.merchant_category_code,
+            environment=case.transaction.environment.value,
+            is_recurring=case.transaction.is_recurring,
+            auth_code=case.transaction.authorization_code or "None",
+            auth_response=case.transaction.authorization_response_code or "None",
+            statement=case.cardholder.cardholder_statement or "No statement provided",
+            evidence=evidence_summary or "No evidence provided",
+        )
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=300,
+        )
+
+        content = response.choices[0].message.content
+        if content is None:
+            return None
+
+        # Strip markdown code fences if present
+        content = content.strip()
+        if content.startswith("```"):
+            content = content.split("\n", 1)[1] if "\n" in content else content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+            content = content.strip()
+
+        result = json.loads(content)
+
+        category = DisputeCategory(result["category"])
+        condition = DisputeCondition(result["condition"])
+        confidence = float(result["confidence"])
+        rationale = f"[LLM] {result['rationale']}"
+
+        logger.info(
+            "LLM categorization result: %s/%s (confidence: %.2f)",
+            category.value,
+            condition.value,
+            confidence,
+        )
+
+        return CategorizationResult(
+            category=category,
+            condition=condition,
+            confidence=confidence,
+            rationale=rationale,
+            alternative_conditions=[],
+        )
+
+    except Exception:
+        logger.exception("LLM categorization failed")
+        return None

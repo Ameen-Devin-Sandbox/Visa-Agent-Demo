@@ -402,17 +402,16 @@ class TestConsumerDisputeCategorization:
         assert result.condition == DisputeCondition.NOT_AS_DESCRIBED
 
     def test_condition_13_4_counterfeit(self) -> None:
-        """'counterfeit' in statement triggers fraud detection first.
-        Since fraud has priority, this categorizes as fraud (10.4) not consumer (13.4).
-        To get 13.4, the statement must avoid fraud keywords."""
+        """'counterfeit' in a merchandise context routes to consumer dispute (13.4),
+        not fraud. The word 'received' provides merchandise context."""
         case = _make_case(
             statement="I received counterfeit goods",
             authorization_code="ABC",
             authorization_response_code="00",
         )
         result = categorize_dispute(case)
-        # 'counterfeit' is a fraud indicator, so it routes to fraud category
-        assert result.category == DisputeCategory.FRAUD
+        assert result.category == DisputeCategory.CONSUMER_DISPUTES
+        assert result.condition == DisputeCondition.COUNTERFEIT_MERCHANDISE
 
     def test_condition_13_4_fake(self) -> None:
         case = _make_case(
@@ -511,10 +510,21 @@ class TestCategorizationPriority:
         result = categorize_dispute(case)
         assert result.category == DisputeCategory.FRAUD
 
-    def test_auth_takes_priority_over_consumer(self) -> None:
-        """Authorization issues override consumer dispute indicators."""
+    def test_consumer_takes_priority_when_strong_signal(self) -> None:
+        """When both consumer and authorization signals are present,
+        strong consumer signals (like 'not received') route to consumer disputes."""
         case = _make_case(
             statement="My card was declined but merchandise not received",
+            authorization_response_code="05",
+        )
+        result = categorize_dispute(case)
+        assert result.category == DisputeCategory.CONSUMER_DISPUTES
+
+    def test_auth_takes_priority_without_consumer_signal(self) -> None:
+        """Authorization issues still correctly categorize when no
+        strong consumer dispute signals are present."""
+        case = _make_case(
+            statement="My card was declined at the store",
             authorization_response_code="05",
         )
         result = categorize_dispute(case)
