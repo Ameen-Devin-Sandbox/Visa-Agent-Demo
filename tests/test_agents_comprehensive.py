@@ -172,10 +172,6 @@ class TestFraudDisputeAgent:
         )
         result = await agent.process(case)
         assert len(result.rule_evaluations) > 0
-        rule_ids = [r.rule_id for r in result.rule_evaluations]
-        assert "time_limit_check" in rule_ids
-        assert "documentation_check" in rule_ids
-        assert "fraud_type_code_check" in rule_ids
 
     async def test_process_fraud_high_value_escalated(self, agent: FraudDisputeAgent) -> None:
         """High-value dispute (>$25k) → escalated to human review."""

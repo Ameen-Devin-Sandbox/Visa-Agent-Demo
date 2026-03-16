@@ -1,44 +1,15 @@
-"""Visa Rules Engine - Encoded dispute processing logic.
+"""AI-powered dispute categorization.
 
-This module encodes Visa Core Rules Section 11 (Dispute Resolution) into
-actionable Python logic. This is NOT a simple RAG system - it contains
-deterministic rule evaluation, time limit calculations, validity checks,
-documentation validators, and compelling evidence evaluation.
+This module provides the AI-powered dispute categorization engine that uses
+OpenAI to reason over the Visa Core Rules document. The previous hardcoded
+rules modules (validity, time_limits, documentation, compelling_evidence)
+have been replaced by LLM-powered agents that reason directly over the
+Visa rules text.
 """
 
 from src.rules.categorizer import CategorizationResult, categorize_dispute
-from src.rules.compelling_evidence import (
-    CompellingEvidenceResult,
-    evaluate_compelling_evidence,
-)
-from src.rules.documentation import (
-    DocumentationCheckResult,
-    check_documentation_requirements,
-    check_fraud_type_code_requirement,
-)
-from src.rules.time_limits import (
-    calculate_deadline,
-    get_arbitration_deadline,
-    get_pre_arbitration_deadline,
-    is_within_time_limit,
-)
-from src.rules.validity import (
-    ValidityCheckResult,
-    check_dispute_validity,
-)
 
 __all__ = [
     "CategorizationResult",
-    "CompellingEvidenceResult",
-    "DocumentationCheckResult",
-    "ValidityCheckResult",
-    "calculate_deadline",
     "categorize_dispute",
-    "check_dispute_validity",
-    "check_documentation_requirements",
-    "check_fraud_type_code_requirement",
-    "evaluate_compelling_evidence",
-    "get_arbitration_deadline",
-    "get_pre_arbitration_deadline",
-    "is_within_time_limit",
 ]
