@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Time Limits",
+  "description": "Schema for Visa dispute time limits extracted from Section 11.2",
+  "type": "object",
+  "required": ["version", "source_section", "dispute_time_limits", "pre_arbitration_time_limits", "arbitration_time_limit"],
+  "properties": {
+    "version": { "type": "string" },
+    "source_section": { "type": "string" },
+    "dispute_time_limits": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["calendar_days", "from_event", "description"],
+        "properties": {
+          "calendar_days": { "type": "integer", "minimum": 1 },
+          "from_event": { "type": "string" },
+          "description": { "type": "string" },
+          "region_exceptions": {
+            "type": "object",
+            "additionalProperties": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "pre_arbitration_time_limits": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["calendar_days", "from_event", "description"],
+        "properties": {
+          "calendar_days": { "type": "integer", "minimum": 1 },
+          "from_event": { "type": "string" },
+          "description": { "type": "string" },
+          "region_exceptions": {
+            "type": "object",
+            "additionalProperties": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "arbitration_time_limit": {
+      "type": "object",
+      "required": ["calendar_days", "from_event", "description"],
+      "properties": {
+        "calendar_days": { "type": "integer", "minimum": 1 },
+        "from_event": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    }
+  }
+}

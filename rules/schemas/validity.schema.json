@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Validity Rules",
+  "description": "Schema for dispute validity rules extracted from Sections 11.7-11.10",
+  "type": "object",
+  "required": ["version", "source_section", "conditions"],
+  "properties": {
+    "version": { "type": "string" },
+    "source_section": { "type": "string" },
+    "conditions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "rule_section", "invalid_when"],
+        "properties": {
+          "name": { "type": "string" },
+          "rule_section": { "type": "string" },
+          "invalid_when": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["field", "reason"],
+              "properties": {
+                "field": { "type": "string" },
+                "equals": {},
+                "not_equals": {},
+                "starts_with": { "type": "string" },
+                "is_truthy": { "type": "boolean" },
+                "is_empty": { "type": "boolean" },
+                "additional_field": { "type": "string" },
+                "additional_equals_any": { "type": "array" },
+                "additional_not_equals": {},
+                "reason": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

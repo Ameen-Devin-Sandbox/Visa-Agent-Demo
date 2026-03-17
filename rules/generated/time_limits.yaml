@@ -1,0 +1,175 @@
+version: "V1.1 - 18 October 2025"
+source_section: "11.2"
+
+dispute_time_limits:
+  "10.1":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "10.2":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "10.3":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "10.4":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "10.5":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "11.1":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "11.2":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "11.3":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "12.2":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "12.3":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "12.4":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "12.5":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "12.6":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "12.7":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "13.1":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions:
+      europe_ecommerce: 540
+
+  "13.2":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "13.3":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "13.4":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "13.5":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "13.6":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "13.7":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "13.8":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+  "13.9":
+    calendar_days: 120
+    from_event: transaction_processing_date
+    description: "120 calendar days from the Transaction Processing Date"
+    region_exceptions: {}
+
+pre_arbitration_time_limits:
+  category_10_11:
+    calendar_days: 30
+    from_event: dispute_processing_date
+    description: "30 calendar days from the Dispute Processing Date"
+    region_exceptions:
+      cemea_nigeria: 2
+      europe_poland_atm: 20
+      cemea_tanzania: 20
+
+  category_12_13_response:
+    calendar_days: 30
+    from_event: dispute_processing_date
+    description: "30 calendar days from the Dispute Processing Date"
+    region_exceptions:
+      cemea_egypt_atm: 10
+      ap_india_atm: 6
+      cemea_nigeria: 2
+      europe_poland_atm: 20
+      cemea_tanzania: 20
+
+  category_12_13_pre_arb:
+    calendar_days: 30
+    from_event: dispute_response_processing_date
+    description: "30 calendar days from the Dispute Response Processing Date"
+    region_exceptions:
+      cemea_tanzania: 10
+
+arbitration_time_limit:
+  calendar_days: 10
+  from_event: pre_arbitration_response_processing_date
+  description: "10 calendar days from the Processing Date of the pre-Arbitration response"

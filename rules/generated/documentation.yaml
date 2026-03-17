@@ -1,0 +1,198 @@
+version: "V1.1 - 18 October 2025"
+source_section: "11.7-11.10"
+
+requirements:
+  "10.1":
+    - requirement_id: "10.1_cert_denial"
+      description: "Certification that the Cardholder denies authorization of or participation in the Transaction"
+      is_mandatory: true
+      rule_section: "11.7.2.5"
+
+    - requirement_id: "10.1_cert_chip"
+      description: "For key-entered Transactions, certification that the Card is a Chip Card"
+      is_mandatory: false
+      rule_section: "11.7.2.5"
+
+    - requirement_id: "10.1_fraud_report"
+      description: "Fraud Activity reported to Visa using fraud type code 4 (counterfeit)"
+      is_mandatory: true
+      rule_section: "11.7.2.2"
+
+  "10.2":
+    - requirement_id: "10.2_cert_pin_chip"
+      description: "Certification that the Card was a PIN-Preferring Chip Card"
+      is_mandatory: true
+      rule_section: "11.7.3.5"
+
+    - requirement_id: "10.2_cert_denial"
+      description: "Certification that the Cardholder denies authorization of or participation in the Transaction"
+      is_mandatory: true
+      rule_section: "11.7.3.5"
+
+    - requirement_id: "10.2_fraud_report"
+      description: "Fraud Activity reported using fraud type code 0 (lost), 1 (stolen), or 2 (NRI)"
+      is_mandatory: true
+      rule_section: "11.7.3.2"
+
+  "10.3":
+    - requirement_id: "10.3_cert_denial"
+      description: "Certification that the Cardholder denies authorization of or participation in the Transaction"
+      is_mandatory: true
+      rule_section: "11.7.4.5"
+
+    - requirement_id: "10.3_fraud_report"
+      description: "Fraud Activity reported to Visa before initiating the Dispute"
+      is_mandatory: true
+      rule_section: "11.7.4.2"
+
+  "10.4":
+    - requirement_id: "10.4_cert_denial"
+      description: "Certification that the Cardholder denies authorization of or participation in the Transaction"
+      is_mandatory: true
+      rule_section: "11.7.5.5"
+
+    - requirement_id: "10.4_fraud_report"
+      description: "Fraud Activity reported to Visa before initiating the Dispute"
+      is_mandatory: true
+      rule_section: "11.7.5.2"
+
+  "11.1":
+    - requirement_id: "11.1_crb_listing"
+      description: "Evidence that the Card was listed on the Card Recovery Bulletin"
+      is_mandatory: true
+      rule_section: "11.8.1.5"
+
+  "11.2":
+    - requirement_id: "11.2_decline_record"
+      description: "Evidence of the declined authorization response"
+      is_mandatory: true
+      rule_section: "11.8.2.5"
+
+  "11.3":
+    - requirement_id: "11.3_no_auth"
+      description: "Evidence that no valid authorization was obtained or presentment was late"
+      is_mandatory: true
+      rule_section: "11.8.3.5"
+
+  "12.2":
+    - requirement_id: "12.2_incorrect_code"
+      description: "Description of the correct Transaction code and why the submitted code is incorrect"
+      is_mandatory: true
+      rule_section: "11.9.1.5"
+
+  "12.3":
+    - requirement_id: "12.3_incorrect_currency"
+      description: "Evidence of the correct currency for the Transaction"
+      is_mandatory: true
+      rule_section: "11.9.2.5"
+
+  "12.4":
+    - requirement_id: "12.4_incorrect_account"
+      description: "Evidence that the incorrect account number was used"
+      is_mandatory: true
+      rule_section: "11.9.3.5"
+
+  "12.5":
+    - requirement_id: "12.5_incorrect_amount"
+      description: "Evidence of the correct Transaction amount"
+      is_mandatory: true
+      rule_section: "11.9.4.5"
+
+  "12.6":
+    - requirement_id: "12.6_duplicate"
+      description: "Evidence that the Transaction was processed more than once or paid by other means"
+      is_mandatory: true
+      rule_section: "11.9.5.5"
+
+  "12.7":
+    - requirement_id: "12.7_invalid_data"
+      description: "Description of the invalid data in the Transaction"
+      is_mandatory: true
+      rule_section: "11.9.6.5"
+
+  "13.1":
+    - requirement_id: "13.1_not_received"
+      description: "Cardholder statement that merchandise/services were not received"
+      is_mandatory: true
+      rule_section: "11.10.2.5"
+
+    - requirement_id: "13.1_expected_date"
+      description: "Expected delivery date or service date"
+      is_mandatory: true
+      rule_section: "11.10.2.5"
+
+  "13.2":
+    - requirement_id: "13.2_cancellation"
+      description: "Evidence that the recurring Transaction was cancelled"
+      is_mandatory: true
+      rule_section: "11.10.3.5"
+
+    - requirement_id: "13.2_cancel_date"
+      description: "Date of cancellation"
+      is_mandatory: true
+      rule_section: "11.10.3.5"
+
+  "13.3":
+    - requirement_id: "13.3_description"
+      description: "Description of how the merchandise/services differ from what was described"
+      is_mandatory: true
+      rule_section: "11.10.4.5"
+
+    - requirement_id: "13.3_attempt_resolve"
+      description: "Evidence that the Cardholder attempted to resolve with the Merchant"
+      is_mandatory: true
+      rule_section: "11.10.4.5"
+
+  "13.4":
+    - requirement_id: "13.4_counterfeit_evidence"
+      description: "Evidence that the merchandise is counterfeit"
+      is_mandatory: true
+      rule_section: "11.10.5.5"
+
+  "13.5":
+    - requirement_id: "13.5_misrep_description"
+      description: "Description of the misrepresentation"
+      is_mandatory: true
+      rule_section: "11.10.6.5"
+
+  "13.6":
+    - requirement_id: "13.6_credit_evidence"
+      description: "Evidence that a credit was expected but not processed"
+      is_mandatory: true
+      rule_section: "11.10.7.5"
+
+  "13.7":
+    - requirement_id: "13.7_cancellation"
+      description: "Evidence of cancellation or return of merchandise/services"
+      is_mandatory: true
+      rule_section: "11.10.8.5"
+
+  "13.8":
+    - requirement_id: "13.8_oct_evidence"
+      description: "Evidence that the Original Credit Transaction was not accepted"
+      is_mandatory: true
+      rule_section: "11.10.9.5"
+
+  "13.9":
+    - requirement_id: "13.9_atm_evidence"
+      description: "Evidence that cash was not received at the ATM"
+      is_mandatory: true
+      rule_section: "11.10.10.5"
+
+cardholder_letter_requirements:
+  category_10:
+    - "Cardholder's complete or partial Payment Credential"
+    - "Merchant name(s)"
+    - "Transaction amount(s)"
+
+  category_13:
+    - "Cardholder's complete or partial Payment Credential"
+    - "Merchant name(s)"
+    - "Transaction amount(s)"
+    - "Description of dispute reason"
+
+fraud_type_code_requirements:
+  "10.1":
+    allowed_codes: ["4"]
+  "10.2":
+    allowed_codes: ["0", "1", "2"]

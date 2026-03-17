@@ -1,0 +1,123 @@
+version: "V1.1 - 18 October 2025"
+source_section: "11.6-11.10"
+
+fraud_indicators:
+  - "unauthorized"
+  - "fraud"
+  - "did not authorize"
+  - "did not make"
+  - "stolen"
+  - "lost"
+  - "counterfeit"
+  - "not mine"
+  - "identity theft"
+
+authorization_indicators:
+  - "declined"
+  - "no authorization"
+  - "over limit"
+  - "expired card"
+  - "card recovery"
+  - "late presentment"
+
+processing_error_indicators:
+  - "wrong amount"
+  - "incorrect amount"
+  - "duplicate"
+  - "charged twice"
+  - "wrong currency"
+  - "incorrect currency"
+  - "wrong account"
+  - "paid by other means"
+  - "invalid data"
+  - "incorrect code"
+
+categories:
+  "10":
+    name: "Fraud"
+    description: "The cardholder denies authorizing or participating in the transaction"
+    conditions:
+      "10.1":
+        name: "EMV Liability Shift Counterfeit Fraud"
+        description: "Counterfeit card used at non-chip or improperly configured terminal"
+      "10.2":
+        name: "EMV Liability Shift Non-Counterfeit Fraud"
+        description: "Lost/stolen/NRI card used at terminal without proper PIN verification"
+      "10.3":
+        name: "Other Fraud - Card-Present"
+        description: "Fraud in card-present environment not qualifying for EMV liability shift"
+      "10.4":
+        name: "Other Fraud - Card-Absent"
+        description: "Fraud in card-not-present environment"
+      "10.5":
+        name: "Visa Fraud Monitoring Program"
+        description: "Fraud identified through Visa fraud monitoring"
+
+  "11":
+    name: "Authorization"
+    description: "Issues with the authorization process itself"
+    conditions:
+      "11.1":
+        name: "Card Recovery Bulletin"
+        description: "Card was listed on the Card Recovery Bulletin at the time of the Transaction"
+      "11.2":
+        name: "Declined Authorization"
+        description: "Authorization was declined but transaction was processed"
+      "11.3":
+        name: "No Authorization"
+        description: "No valid authorization was obtained for the Transaction"
+
+  "12":
+    name: "Processing Errors"
+    description: "Technical/processing mistakes in the transaction"
+    conditions:
+      "12.2":
+        name: "Incorrect Transaction Code"
+        description: "Incorrect transaction code was used"
+      "12.3":
+        name: "Incorrect Currency"
+        description: "Transaction was processed in the wrong currency"
+      "12.4":
+        name: "Incorrect Account Number"
+        description: "Transaction was posted to the wrong account"
+      "12.5":
+        name: "Incorrect Amount"
+        description: "Transaction amount does not match the agreed-upon amount"
+      "12.6":
+        name: "Duplicate Processing"
+        description: "Transaction was processed more than once or paid by other means"
+      "12.7":
+        name: "Invalid Data"
+        description: "Transaction contains invalid data"
+
+  "13":
+    name: "Consumer Disputes"
+    description: "Cardholder participated but disputes what was received or billed"
+    conditions:
+      "13.1":
+        name: "Merchandise/Services Not Received"
+        description: "Merchandise or services were not received by the cardholder"
+      "13.2":
+        name: "Cancelled Recurring Transaction"
+        description: "Recurring transaction was billed after cancellation"
+      "13.3":
+        name: "Not as Described or Defective"
+        description: "Merchandise/services not as described or defective"
+      "13.4":
+        name: "Counterfeit Merchandise"
+        description: "Merchandise is counterfeit"
+      "13.5":
+        name: "Misrepresentation"
+        description: "Merchant misrepresented the merchandise or services"
+      "13.6":
+        name: "Credit Not Processed"
+        description: "Expected credit/refund was not processed by the merchant"
+      "13.7":
+        name: "Cancelled Merchandise/Services"
+        description: "Merchandise/services were cancelled or returned"
+      "13.8":
+        name: "Original Credit Transaction Not Accepted"
+        description: "Original Credit Transaction was not accepted"
+      "13.9":
+        name: "Non-Receipt of Cash from ATM"
+        description: "Cash not received at ATM"

@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Compelling Evidence",
+  "description": "Schema for compelling evidence types from Section 11.5.2",
+  "type": "object",
+  "required": ["version", "source_section", "evidence_types"],
+  "properties": {
+    "version": { "type": "string" },
+    "source_section": { "type": "string" },
+    "evidence_types": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["type", "description", "rule_section"],
+          "properties": {
+            "type": { "type": "string" },
+            "description": { "type": "string" },
+            "rule_section": { "type": "string" }
+          }
+        }
+      }
+    },
+    "keyword_mappings": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  }
+}

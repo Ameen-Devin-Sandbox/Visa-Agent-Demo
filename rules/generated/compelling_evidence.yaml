@@ -1,0 +1,143 @@
+version: "V1.1 - 18 October 2025"
+source_section: "11.5.2"
+
+evidence_types:
+  "10.4":
+    - type: previous_undisputed_transactions
+      description: >-
+        At least two prior undisputed transactions with matching key data elements
+        (IP address, device ID/fingerprint, or shipping address) linking the
+        cardholder to the disputed transaction
+      rule_section: "11.5.2"
+
+    - type: delivery_confirmation
+      description: >-
+        Evidence of delivery to the cardholder's address that matches
+        the AVS-verified address (AVS result code Y)
+      rule_section: "11.5.2"
+
+    - type: cardholder_identity_verification
+      description: >-
+        Evidence that the cardholder's identity was verified through
+        additional authentication (e.g., biometric, 3-D Secure)
+      rule_section: "11.5.2"
+
+  "10.1":
+    - type: chip_reading_evidence
+      description: >-
+        Evidence that the transaction was processed at a chip-reading device
+        and full chip data was transmitted
+      rule_section: "11.5.2"
+
+  "13.1":
+    - type: delivery_proof
+      description: >-
+        Proof of delivery signed by the cardholder or authorized person,
+        including tracking information and delivery confirmation
+      rule_section: "11.5.2"
+
+    - type: digital_delivery_proof
+      description: >-
+        For digital goods: evidence of download/access by the cardholder,
+        including IP address, device fingerprint, or usage logs
+      rule_section: "11.5.2"
+
+  "13.3":
+    - type: product_description_match
+      description: >-
+        Evidence that the merchandise/services matched the original description
+        provided to the cardholder at the time of purchase
+      rule_section: "11.5.2"
+
+  "13.2":
+    - type: no_cancellation_record
+      description: >-
+        Evidence that no cancellation request was received before the
+        transaction date, or that the cancellation policy was not followed
+      rule_section: "11.5.2"
+
+    - type: cancellation_terms
+      description: >-
+        Evidence of the agreed-upon cancellation terms that the cardholder
+        accepted at the time of the original transaction
+      rule_section: "11.5.2"
+
+  "13.6":
+    - type: credit_processed_evidence
+      description: >-
+        Evidence that the credit was already processed, including
+        transaction identifiers and processing dates
+      rule_section: "11.5.2"
+
+  "13.7":
+    - type: no_return_evidence
+      description: >-
+        Evidence that the merchandise was not returned, or services
+        were fully provided before cancellation
+      rule_section: "11.5.2"
+
+    - type: cancellation_policy
+      description: >-
+        Evidence that the cancellation/return policy was disclosed to
+        the cardholder and not followed
+      rule_section: "11.5.2"
+
+keyword_mappings:
+  previous_undisputed_transactions:
+    - "prior"
+    - "previous"
+    - "undisputed"
+    - "ip address"
+    - "device"
+  delivery_confirmation:
+    - "delivery"
+    - "delivered"
+    - "shipping"
+    - "avs"
+    - "address"
+  cardholder_identity_verification:
+    - "identity"
+    - "biometric"
+    - "3ds"
+    - "3-d secure"
+    - "authentication"
+  chip_reading_evidence:
+    - "chip"
+    - "emv"
+    - "full chip data"
+  delivery_proof:
+    - "delivery"
+    - "tracking"
+    - "signed"
+    - "proof of delivery"
+  digital_delivery_proof:
+    - "download"
+    - "digital"
+    - "access log"
+    - "usage"
+  product_description_match:
+    - "description"
+    - "product"
+    - "match"
+    - "as described"
+  no_cancellation_record:
+    - "cancellation"
+    - "no record"
+    - "not cancelled"
+  cancellation_terms:
+    - "cancellation terms"
+    - "policy"
+    - "terms and conditions"
+  credit_processed_evidence:
+    - "credit"
+    - "processed"
+    - "refund"
+    - "transaction id"
+  no_return_evidence:
+    - "return"
+    - "not returned"
+    - "merchandise"
+  cancellation_policy:
+    - "cancellation policy"
+    - "return policy"
+    - "disclosed"

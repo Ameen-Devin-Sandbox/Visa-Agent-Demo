@@ -1,0 +1,154 @@
+version: "V1.1 - 18 October 2025"
+source_section: "11.7-11.10"
+
+conditions:
+  "10.1":
+    name: "EMV Liability Shift Counterfeit Fraud"
+    rule_section: "11.7.2.3"
+    invalid_when:
+      - field: transaction.is_chip_initiated
+        equals: true
+        reason: "Dispute invalid: Chip-initiated transaction"
+
+      - field: transaction.is_emergency_cash_disbursement
+        equals: true
+        reason: "Dispute invalid: Emergency Cash Disbursement"
+
+      - field: transaction.is_fallback_transaction
+        equals: true
+        reason: "Dispute invalid: Fallback Transaction"
+
+      - field: transaction.is_mobile_push_payment
+        equals: true
+        reason: "Dispute invalid: Mobile Push Payment Transaction"
+
+      - field: transaction.cvv_present
+        equals: true
+        additional_field: transaction.cvv_verified
+        additional_equals_any: [null, false]
+        reason: "Dispute invalid: CVV present but verification not performed or failed"
+
+      - field: transaction.is_token_transaction
+        equals: true
+        additional_field: transaction.region
+        additional_not_equals: "europe"
+        reason: "Dispute invalid: Token transaction (All excluding Europe)"
+
+  "10.2":
+    name: "EMV Liability Shift Non-Counterfeit Fraud"
+    rule_section: "11.7.3.3"
+    invalid_when:
+      - field: transaction.environment
+        equals: "atm"
+        reason: "Dispute invalid: ATM Cash Disbursement"
+
+      - field: transaction.is_contactless
+        equals: true
+        reason: "Dispute invalid: Contactless Transaction"
+
+      - field: transaction.is_emergency_cash_disbursement
+        equals: true
+        reason: "Dispute invalid: Emergency Cash Disbursement"
+
+      - field: transaction.is_mobile_push_payment
+        equals: true
+        reason: "Dispute invalid: Mobile Push Payment Transaction"
+
+      - field: transaction.is_veps_transaction
+        equals: true
+        reason: "Dispute invalid: VEPS Transaction"
+
+      - field: transaction.is_fallback_transaction
+        equals: true
+        reason: "Dispute invalid: Fallback Transaction"
+
+  "10.3":
+    name: "Other Fraud - Card-Present Environment"
+    rule_section: "11.7.4.3"
+    invalid_when:
+      - field: transaction.environment
+        not_equals: "card_present"
+        reason: "Dispute invalid: Transaction was not in Card-Present Environment"
+
+      - field: transaction.is_mobile_push_payment
+        equals: true
+        reason: "Dispute invalid: Mobile Push Payment Transaction"
+
+  "10.4":
+    name: "Other Fraud - Card-Absent Environment"
+    rule_section: "11.7.5.3"
+    invalid_when:
+      - field: transaction.environment
+        equals: "card_present"
+        reason: "Dispute invalid: Transaction was in Card-Present Environment (requires Card-Absent)"
+
+      - field: transaction.is_mobile_push_payment
+        equals: true
+        reason: "Dispute invalid: Mobile Push Payment Transaction"
+
+      - field: transaction.three_d_secure_authenticated
+        equals: true
+        additional_field: transaction.region
+        additional_not_equals: "europe"
+        reason: "Dispute invalid: 3-D Secure authenticated transaction (non-Europe)"
+
+  "11.1":
+    name: "Card Recovery Bulletin"
+    rule_section: "11.8.1.3"
+    invalid_when:
+      - field: transaction.is_mobile_push_payment
+        equals: true
+        reason: "Dispute invalid: Mobile Push Payment Transaction"
+
+  "11.2":
+    name: "Declined Authorization"
+    rule_section: "11.8.2.3"
+    invalid_when:
+      - field: transaction.authorization_response_code
+        starts_with: "0"
+        reason: "Dispute invalid: Authorization was approved, not declined"
+
+  "11.3":
+    name: "No Authorization / Late Presentment"
+    rule_section: "11.8.3.3"
+    invalid_when:
+      - field: transaction.authorization_code
+        is_truthy: true
+        reason: "Dispute invalid: Valid authorization code exists"
+
+  "12.5":
+    name: "Incorrect Amount"
+    rule_section: "11.9.4.3"
+    invalid_when:
+      - field: dispute_amount
+        equals: null
+        reason: "Dispute invalid: No dispute amount specified for incorrect amount claim"
+
+  "12.6":
+    name: "Duplicate Processing / Paid by Other Means"
+    rule_section: "11.9.5.3"
+    invalid_when: []
+
+  "13.1":
+    name: "Merchandise/Services Not Received"
+    rule_section: "11.10.2.3"
+    invalid_when:
+      - field: transaction.environment
+        equals: "atm"
+        reason: "Dispute invalid: ATM transactions use condition 13.9 instead"
+
+  "13.2":
+    name: "Cancelled Recurring Transaction"
+    rule_section: "11.10.3.3"
+    invalid_when:
+      - field: transaction.is_recurring
+        equals: false
+        reason: "Dispute invalid: Transaction is not a recurring transaction"
+
+  "13.6":
+    name: "Credit Not Processed"
+    rule_section: "11.10.7.3"
+    invalid_when:
+      - field: prior_credits
+        is_empty: true
+        reason: "Dispute invalid: No evidence of expected credit that was not processed"

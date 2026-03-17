@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Documentation Requirements",
+  "description": "Schema for dispute documentation requirements from Sections 11.7-11.10",
+  "type": "object",
+  "required": ["version", "source_section", "requirements"],
+  "properties": {
+    "version": { "type": "string" },
+    "source_section": { "type": "string" },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["requirement_id", "description", "is_mandatory", "rule_section"],
+          "properties": {
+            "requirement_id": { "type": "string" },
+            "description": { "type": "string" },
+            "is_mandatory": { "type": "boolean" },
+            "rule_section": { "type": "string" }
+          }
+        }
+      }
+    },
+    "cardholder_letter_requirements": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "fraud_type_code_requirements": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["allowed_codes"],
+        "properties": {
+          "allowed_codes": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
