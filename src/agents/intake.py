@@ -66,24 +66,70 @@ Key rules:
 
     async def _determine_condition(self, dispute: Dispute) -> TaskResult:
         """Determine the dispute condition code."""
-        # First, use the rule engine for programmatic matching
+        # If condition is already set (pre-classified), validate with LLM and proceed
+        if dispute.condition is not None:
+            rule_section = self._get_rule_section(dispute.condition)
+            from src.rules.registry import get_condition_rule
+            rule = get_condition_rule(dispute.condition)
+
+            summary = self._format_dispute_summary(dispute)
+            llm_analysis = await self._reason(
+                f"The dispute has been pre-classified as condition {dispute.condition.value} "
+                f"({rule.name}). Review the dispute facts and confirm whether this condition "
+                f"code is appropriate. If not, suggest a better one.",
+                context=summary,
+            )
+
+            return TaskResult(
+                success=True,
+                decision=f"CONDITION_CONFIRMED: {dispute.condition.value}",
+                reasoning=f"Pre-classified as {dispute.condition.value} ({rule.name}). LLM validation:\n{llm_analysis}",
+                data={
+                    "condition": dispute.condition.value,
+                    "confidence": 0.85,
+                    "llm_validation": llm_analysis,
+                },
+                next_actions=[TaskType.EVALUATE_ELIGIBILITY],
+                rule_references=[f"Section {rule_section}"],
+            )
+
+        # Use the rule engine for programmatic matching
         candidates = engine.determine_condition(dispute)
 
         if not candidates:
-            # Fall back to LLM reasoning
+            # Fall back to LLM reasoning for full classification
             summary = self._format_dispute_summary(dispute)
             llm_analysis = await self._reason(
                 "Based on the following dispute details, determine the most appropriate Visa dispute "
                 "condition code. Consider all 23 conditions across categories 10-13. "
-                "Provide your top 3 candidates with confidence scores and reasoning.",
+                "Respond with the condition code (e.g. '13.1') on the first line, then your reasoning.",
                 context=summary,
             )
+
+            # Try to extract a condition code from the LLM response
+            condition = self._extract_condition_from_llm(llm_analysis)
+            if condition:
+                dispute.condition = condition
+                dispute.category = condition.category
+                return TaskResult(
+                    success=True,
+                    decision=f"CONDITION_DETERMINED: {condition.value} (via LLM)",
+                    reasoning=llm_analysis,
+                    data={
+                        "condition": condition.value,
+                        "confidence": 0.7,
+                        "llm_analysis": llm_analysis,
+                    },
+                    next_actions=[TaskType.EVALUATE_ELIGIBILITY],
+                    warnings=["Condition determined by LLM — recommend human review"],
+                )
+
             return TaskResult(
                 success=True,
                 decision="LLM_ANALYSIS_NEEDED",
                 reasoning=llm_analysis,
-                next_actions=["Human review recommended — no programmatic match found"],
                 data={"llm_analysis": llm_analysis},
+                warnings=["Could not extract condition code from LLM response"],
             )
 
         top_condition, top_confidence, top_reasoning = candidates[0]
@@ -204,6 +250,18 @@ Key rules:
             reasoning="All required documentation is present",
             data={"all_required": docs},
         )
+
+    @staticmethod
+    def _extract_condition_from_llm(llm_text: str) -> DisputeCondition | None:
+        """Try to extract a condition code (e.g. '13.1') from LLM output."""
+        import re
+        valid_codes = {c.value for c in DisputeCondition}
+        # Look for patterns like "13.1", "10.4", "12.6" in the text
+        matches = re.findall(r'\b(\d{2}\.\d)\b', llm_text)
+        for match in matches:
+            if match in valid_codes:
+                return DisputeCondition(match)
+        return None
 
     def _get_rule_section(self, condition: DisputeCondition) -> str:
         from src.rules.registry import get_condition_rule
