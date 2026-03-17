@@ -35,15 +35,15 @@ class DisputeBrain:
 
     The Brain is responsible for:
     - Consuming tasks from the priority queue
-    - Categorizing incoming disputes using the rules engine
-    - Routing disputes to the correct specialized sub-agent
+    - Categorizing incoming disputes using AI-powered categorization
+    - Routing disputes to AI-powered specialized sub-agents
     - Managing lifecycle state transitions
     - Coordinating pre-arbitration and arbitration escalation
     - Maintaining a complete audit trail
     - Enforcing human-in-the-loop checkpoints
 
     Architecture:
-        Queue -> Brain -> [Categorizer] -> Sub-Agent -> Decision -> Resolution
+        Queue -> Brain -> [AI Categorizer] -> AI Sub-Agent -> Decision -> Resolution
     """
 
     def __init__(self, task_queue: DisputeTaskQueue) -> None:
