@@ -11,3 +11,6 @@ build/
 .ruff_cache/
 .env
 *.db
+.venv/
+.solution/
+.cognition/
