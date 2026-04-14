@@ -25,130 +25,30 @@ from src.models.enums import (
     DisputeResolution,
 )
 
-_CONSUMER_SYSTEM_PROMPT = """\
-You are a specialized Visa consumer disputes processing agent. You evaluate \
-consumer disputes (Category 13) according to Visa Core Rules Section 11.10.
-
-Your evaluation must consider:
-1. Whether the dispute is valid (check for invalid dispute conditions per Section 11.10)
-2. Whether time limits have been met
-3. Whether required documentation has been provided
-4. Consumer-dispute-specific validation:
-   - 13.1 (Merchandise Not Received): Did the cardholder not receive the goods/services?
-   - 13.2 (Cancelled Recurring): Was the recurring transaction cancelled before this charge?
-   - 13.3 (Not as Described): Were goods/services materially different from description?
-   - 13.4 (Counterfeit Merchandise): Is the merchandise counterfeit?
-   - 13.5 (Misrepresentation): Did the merchant misrepresent the goods/services?
-   - 13.6 (Credit Not Processed): Was an expected credit/refund not processed?
-   - 13.7 (Cancelled Merchandise): Were goods/services cancelled or returned?
-   - 13.8 (OCT Not Accepted): Was an Original Credit Transaction not accepted?
-   - 13.9 (Non-Receipt of Cash at ATM): Was cash not dispensed at an ATM?
-5. The strength of the consumer dispute claim based on available evidence
-
-You MUST respond with valid JSON in this exact format:
-{
-    "is_valid": true/false,
-    "validity_reason": "<explanation of validity determination>",
-    "resolution": "<one of: issuer_win, acquirer_win, invalid_dispute>",
-    "confidence": <float 0.0-1.0>,
-    "rationale": "<detailed explanation citing specific Visa rules sections>",
-    "rule_citations": [
-        {
-            "rule_section": "<e.g. 11.10.5>",
-            "rule_description": "<what the rule says>",
-            "is_satisfied": true/false,
-            "details": "<how this rule applies to this case>"
-        }
-    ],
-    "requires_human_review": true/false,
-    "human_review_reason": "<reason if human review needed, null otherwise>"
-}
-"""
+# TODO: Define _CONSUMER_SYSTEM_PROMPT — instruct the LLM to evaluate consumer
+# disputes according to Visa Core Rules Section 11.10. Include condition-specific
+# checks for all 13.x conditions. Require JSON output with same schema as other agents.
+_CONSUMER_SYSTEM_PROMPT = ""
 
 
 class ConsumerDisputesAgent(BaseDisputeAgent):
-    """AI-powered agent specializing in Category 13 (Consumer Disputes).
-
-    Uses OpenAI to reason over Visa Core Rules Section 11.10 to evaluate
-    consumer disputes, check validity, and render decisions.
-    """
+    """AI-powered agent specializing in Category 13 (Consumer Disputes)."""
 
     def __init__(self) -> None:
         super().__init__(AgentType.CONSUMER_DISPUTES)
 
     async def validate(self, case: DisputeCase) -> bool:
-        """Validate this agent can handle the case."""
-        if case.condition is None:
-            return False
-        return case.condition.category == DisputeCategory.CONSUMER_DISPUTES
+        """Validate this agent can handle the case.
+
+        TODO: Return True only if case.condition belongs to DisputeCategory.CONSUMER_DISPUTES.
+        """
+        raise NotImplementedError("Module 3: Implement ConsumerDisputesAgent.validate")
 
     async def process(self, case: DisputeCase) -> DisputeCase:
-        """Process a consumer dispute using AI reasoning over Visa rules."""
-        self.logger.info(
-            "Processing consumer dispute via AI: case=%s condition=%s",
-            case.case_id,
-            case.condition,
-        )
-        case.assigned_agent = self.agent_type.value
-        case.advance_stage(
-            DisputeLifecycleStage.RULE_EVALUATION,
-            "AI consumer disputes agent evaluating",
-        )
+        """Process a consumer dispute using AI reasoning over Visa rules.
 
-        rules_context = get_consumer_disputes_rules()
-        result = self._evaluate_dispute_with_llm(
-            case, rules_context, _CONSUMER_SYSTEM_PROMPT
-        )
-
-        all_evaluations: list[RuleEvaluationResult] = []
-        for citation in result.get("rule_citations", []):
-            eval_result = RuleEvaluationResult(
-                rule_id=f"ai_consumer_{citation['rule_section'].replace('.', '_')}",
-                rule_section=citation["rule_section"],
-                rule_description=citation["rule_description"],
-                is_satisfied=citation["is_satisfied"],
-                details=citation["details"],
-            )
-            all_evaluations.append(eval_result)
-            case.add_rule_evaluation(eval_result)
-
-        case.advance_stage(DisputeLifecycleStage.DECISION, "AI rendering decision")
-
-        if not result.get("is_valid", True):
-            case.add_processing_note(
-                f"AI determined dispute invalid: {result.get('validity_reason', 'Unknown')}"
-            )
-            case.decision = self.create_decision(
-                resolution=DisputeResolution.INVALID_DISPUTE,
-                rationale=f"[AI] {result['rationale']}",
-                rule_evaluations=all_evaluations,
-                confidence=float(result.get("confidence", 0.90)),
-            )
-            case.advance_stage(DisputeLifecycleStage.RESOLVED, "AI rejected: invalid dispute")
-            return case
-
-        resolution_str = result.get("resolution", "issuer_win")
-        resolution = DisputeResolution(resolution_str)
-        confidence = float(result.get("confidence", 0.85))
-        requires_human = result.get("requires_human_review", False)
-        human_reason = result.get("human_review_reason")
-
-        if self._should_escalate_to_human(confidence, case):
-            requires_human = True
-            human_reason = human_reason or "Low confidence or high-value dispute"
-
-        case.decision = self.create_decision(
-            resolution=resolution,
-            rationale=f"[AI] {result['rationale']}",
-            rule_evaluations=all_evaluations,
-            confidence=confidence,
-            requires_human_review=requires_human,
-            human_review_reason=human_reason,
-        )
-
-        if case.decision.requires_human_review:
-            case.advance_stage(DisputeLifecycleStage.HUMAN_REVIEW, "Escalated to human review")
-        else:
-            case.advance_stage(DisputeLifecycleStage.RESOLVED, "AI decision rendered")
-
-        return case
+        TODO: Follow the same pattern as FraudDisputeAgent.process():
+        Use get_consumer_disputes_rules() for rules context and
+        _CONSUMER_SYSTEM_PROMPT for the system prompt.
+        """
+        raise NotImplementedError("Module 3: Implement ConsumerDisputesAgent.process")

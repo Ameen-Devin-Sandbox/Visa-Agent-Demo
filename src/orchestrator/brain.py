@@ -53,34 +53,25 @@ class DisputeBrain:
         self._worker_count = 3
         self._workers: list[asyncio.Task[None]] = []
 
-        # Initialize sub-agents
-        self._agents: dict[str, BaseDisputeAgent] = {
-            AgentType.FRAUD.value: FraudDisputeAgent(),
-            AgentType.AUTHORIZATION.value: AuthorizationDisputeAgent(),
-            AgentType.PROCESSING_ERRORS.value: ProcessingErrorsAgent(),
-            AgentType.CONSUMER_DISPUTES.value: ConsumerDisputesAgent(),
-            AgentType.PRE_ARBITRATION.value: PreArbitrationAgent(),
-        }
+        # TODO: Initialize all sub-agents in self._agents dict, keyed by AgentType.value:
+        # - FRAUD -> FraudDisputeAgent()
+        # - AUTHORIZATION -> AuthorizationDisputeAgent()
+        # - PROCESSING_ERRORS -> ProcessingErrorsAgent()
+        # - CONSUMER_DISPUTES -> ConsumerDisputesAgent()
+        # - PRE_ARBITRATION -> PreArbitrationAgent()
+        self._agents: dict[str, BaseDisputeAgent] = {}
 
-        # Category to agent mapping
-        self._category_agent_map: dict[DisputeCategory, str] = {
-            DisputeCategory.FRAUD: AgentType.FRAUD.value,
-            DisputeCategory.AUTHORIZATION: AgentType.AUTHORIZATION.value,
-            DisputeCategory.PROCESSING_ERRORS: AgentType.PROCESSING_ERRORS.value,
-            DisputeCategory.CONSUMER_DISPUTES: AgentType.CONSUMER_DISPUTES.value,
-        }
+        # TODO: Create self._category_agent_map mapping DisputeCategory -> agent key string
+        # Maps each of the 4 categories to the corresponding agent type value
+        self._category_agent_map: dict[DisputeCategory, str] = {}
 
         logger.info("DisputeBrain initialized with %d sub-agents", len(self._agents))
 
     async def start(self) -> None:
         """Start the brain's worker loops to process tasks from the queue."""
         if self._running:
-            logger.warning("Brain is already running")
             return
-
         self._running = True
-        logger.info("Starting DisputeBrain with %d workers", self._worker_count)
-
         for i in range(self._worker_count):
             worker = asyncio.create_task(self._worker_loop(f"worker-{i}"))
             self._workers.append(worker)
@@ -88,54 +79,30 @@ class DisputeBrain:
     async def stop(self) -> None:
         """Stop the brain and all workers gracefully."""
         self._running = False
-        logger.info("Stopping DisputeBrain...")
-
         for worker in self._workers:
             worker.cancel()
-
         if self._workers:
             await asyncio.gather(*self._workers, return_exceptions=True)
         self._workers.clear()
-        logger.info("DisputeBrain stopped")
 
     async def submit_dispute(self, case: DisputeCase) -> str:
-        """Submit a new dispute case for processing.
+        """Submit a new dispute case for processing via the queue.
 
-        This is the main entry point for dispute intake. The case will be:
-        1. Registered in the case store
-        2. Enqueued as a task for processing
-
-        Args:
-            case: The dispute case to process.
-
-        Returns:
-            The case ID.
+        TODO: Implement:
+        1. Store the case in self._cases
+        2. Advance stage to INTAKE
+        3. Create a DisputeTask with action="process_dispute"
+        4. Enqueue the task
+        5. Return the case_id
         """
-        self._cases[case.case_id] = case
-        case.advance_stage(DisputeLifecycleStage.INTAKE, "Dispute submitted to brain")
-        logger.info("Dispute submitted: case=%s", case.case_id)
-
-        task = DisputeTask(
-            case_id=case.case_id,
-            action="process_dispute",
-        )
-        await self._queue.enqueue(task)
-
-        return case.case_id
+        raise NotImplementedError("Module 4: Implement submit_dispute")
 
     async def process_single(self, case: DisputeCase) -> DisputeCase:
         """Process a single dispute case synchronously (without the queue).
 
-        Useful for testing and direct API calls.
-
-        Args:
-            case: The dispute case to process.
-
-        Returns:
-            The processed dispute case with decision.
+        TODO: Store the case and call _execute_dispute_processing() directly.
         """
-        self._cases[case.case_id] = case
-        return await self._execute_dispute_processing(case)
+        raise NotImplementedError("Module 4: Implement process_single")
 
     def get_case(self, case_id: str) -> DisputeCase | None:
         """Retrieve a dispute case by ID."""
@@ -146,61 +113,29 @@ class DisputeBrain:
         return list(self._cases.values())
 
     def get_case_summary(self, case_id: str) -> dict[str, Any] | None:
-        """Get a summary of a dispute case."""
-        case = self._cases.get(case_id)
-        if case is None:
-            return None
+        """Get a summary of a dispute case.
 
-        return {
-            "case_id": case.case_id,
-            "stage": case.stage.value,
-            "category": case.category.value if case.category else None,
-            "condition": case.condition.value if case.condition else None,
-            "resolution": case.decision.resolution.value if case.decision else None,
-            "confidence": case.decision.confidence_score if case.decision else None,
-            "requires_human_review": case.decision.requires_human_review if case.decision else None,
-            "assigned_agent": case.assigned_agent,
-            "rule_evaluations_count": len(case.rule_evaluations),
-            "evidence_count": len(case.evidence),
-            "processing_notes_count": len(case.processing_notes),
-            "created_at": case.created_at.isoformat(),
-            "updated_at": case.updated_at.isoformat(),
-        }
+        TODO: Return a dict with: case_id, stage, category, condition, resolution,
+        confidence, requires_human_review, assigned_agent, rule_evaluations_count,
+        evidence_count, processing_notes_count, created_at, updated_at.
+        Return None if case not found.
+        """
+        raise NotImplementedError("Module 4: Implement get_case_summary")
 
     async def escalate_to_pre_arbitration(self, case_id: str) -> DisputeCase | None:
         """Escalate a resolved dispute to pre-arbitration.
 
-        This is used when the acquirer contests the initial dispute decision.
+        TODO: Look up the case, advance to PRE_ARBITRATION stage,
+        clear the previous decision, and run the PreArbitrationAgent.
         """
-        case = self._cases.get(case_id)
-        if case is None:
-            logger.warning("Cannot escalate: case %s not found", case_id)
-            return None
-
-        case.advance_stage(
-            DisputeLifecycleStage.PRE_ARBITRATION,
-            "Escalated to pre-arbitration",
-        )
-        case.decision = None  # Clear previous decision
-
-        agent = self._agents[AgentType.PRE_ARBITRATION.value]
-        return await agent.process(case)
+        raise NotImplementedError("Module 4: Implement escalate_to_pre_arbitration")
 
     async def escalate_to_arbitration(self, case_id: str) -> DisputeCase | None:
-        """Escalate a case to arbitration after pre-arbitration cycle."""
-        case = self._cases.get(case_id)
-        if case is None:
-            logger.warning("Cannot escalate: case %s not found", case_id)
-            return None
+        """Escalate a case to arbitration after pre-arbitration cycle.
 
-        case.advance_stage(
-            DisputeLifecycleStage.ARBITRATION,
-            "Escalated to arbitration",
-        )
-        case.decision = None
-
-        agent = self._agents[AgentType.PRE_ARBITRATION.value]
-        return await agent.process(case)
+        TODO: Similar to escalate_to_pre_arbitration but advance to ARBITRATION.
+        """
+        raise NotImplementedError("Module 4: Implement escalate_to_arbitration")
 
     async def approve_human_review(
         self,
@@ -210,209 +145,84 @@ class DisputeBrain:
     ) -> DisputeCase | None:
         """Process a human review decision.
 
-        Args:
-            case_id: The case to review.
-            approved: Whether the human approves the system's decision.
-            reviewer_notes: Optional notes from the reviewer.
+        TODO: Look up the case, verify it's in HUMAN_REVIEW stage.
+        If approved -> advance to RESOLVED.
+        If rejected -> advance to PROCESSING, clear decision.
         """
-        case = self._cases.get(case_id)
-        if case is None:
-            return None
-
-        if case.stage != DisputeLifecycleStage.HUMAN_REVIEW:
-            logger.warning("Case %s is not in human review stage", case_id)
-            return case
-
-        case.add_processing_note(
-            f"Human review: {'APPROVED' if approved else 'REJECTED'}. {reviewer_notes}"
-        )
-
-        if approved and case.decision:
-            case.advance_stage(DisputeLifecycleStage.RESOLVED, "Approved by human reviewer")
-        elif not approved:
-            case.advance_stage(
-                DisputeLifecycleStage.PROCESSING,
-                f"Human reviewer rejected decision: {reviewer_notes}",
-            )
-            # Re-process with additional context
-            case.decision = None
-
-        return case
+        raise NotImplementedError("Module 4: Implement approve_human_review")
 
     # Internal methods
 
     async def _worker_loop(self, worker_id: str) -> None:
         """Main worker loop that continuously processes tasks from the queue."""
-        logger.info("Worker %s started", worker_id)
-
         while self._running:
             try:
                 task = await self._queue.dequeue()
                 if task is None:
                     await asyncio.sleep(0.5)
                     continue
-
-                logger.info(
-                    "Worker %s processing task %s (case=%s, action=%s)",
-                    worker_id,
-                    task.task_id,
-                    task.case_id,
-                    task.action,
-                )
-
                 try:
                     result = await self._handle_task(task)
                     await self._queue.complete_task(task.task_id, result)
                 except Exception as e:
                     logger.exception("Task %s failed: %s", task.task_id, e)
                     await self._queue.fail_task(task.task_id, str(e))
-
             except asyncio.CancelledError:
                 break
             except Exception:
-                logger.exception("Worker %s encountered unexpected error", worker_id)
+                logger.exception("Worker %s error", worker_id)
                 await asyncio.sleep(1)
 
-        logger.info("Worker %s stopped", worker_id)
-
     async def _handle_task(self, task: DisputeTask) -> dict[str, Any]:
-        """Handle a single task from the queue."""
-        case = self._cases.get(task.case_id)
-        if case is None:
-            raise ValueError(f"Case {task.case_id} not found")
+        """Handle a single task from the queue.
 
-        task.mark_in_progress(self.__class__.__name__)
-
-        if task.action == "process_dispute":
-            processed_case = await self._execute_dispute_processing(case)
-            return {
-                "case_id": processed_case.case_id,
-                "stage": processed_case.stage.value,
-                "resolution": processed_case.decision.resolution.value
-                if processed_case.decision
-                else None,
-            }
-        elif task.action == "pre_arbitration":
-            result = await self.escalate_to_pre_arbitration(task.case_id)
-            return {
-                "case_id": task.case_id,
-                "action": "pre_arbitration",
-                "completed": result is not None,
-            }
-        elif task.action == "arbitration":
-            result = await self.escalate_to_arbitration(task.case_id)
-            return {
-                "case_id": task.case_id,
-                "action": "arbitration",
-                "completed": result is not None,
-            }
-        else:
-            raise ValueError(f"Unknown task action: {task.action}")
+        TODO: Look up the case, route based on task.action:
+        - "process_dispute" -> _execute_dispute_processing()
+        - "pre_arbitration" -> escalate_to_pre_arbitration()
+        - "arbitration" -> escalate_to_arbitration()
+        Return a result dict with case_id and outcome.
+        """
+        raise NotImplementedError("Module 4: Implement _handle_task")
 
     async def _execute_dispute_processing(self, case: DisputeCase) -> DisputeCase:
         """Execute the full dispute processing pipeline.
 
-        Pipeline:
-        1. Validation (basic data checks)
-        2. Categorization (determine category and condition)
-        3. Agent routing and processing
+        TODO: Implement the 3-stage pipeline:
+        Stage 1 - Validation:
+          - Advance to VALIDATION, run _validate_case()
+          - If errors, advance to REJECTED and return
+
+        Stage 2 - Categorization:
+          - Advance to CATEGORIZATION
+          - Call categorize_dispute(case) to get category + condition
+          - Set case.category and case.condition
+          - Set dispute_amount, dispute_currency, dispute_filed_date defaults
+
+        Stage 3 - Agent Processing:
+          - Advance to PROCESSING
+          - Call _get_agent_for_case() to find the right agent
+          - Validate the agent can handle the case
+          - Call agent.process(case) and return the result
         """
-        # Stage 1: Validation
-        case.advance_stage(DisputeLifecycleStage.VALIDATION, "Validating dispute data")
-        validation_errors = self._validate_case(case)
-        if validation_errors:
-            case.add_processing_note(f"Validation errors: {validation_errors}")
-            case.advance_stage(
-                DisputeLifecycleStage.REJECTED, f"Validation failed: {validation_errors}"
-            )
-            return case
-
-        # Stage 2: Categorization
-        case.advance_stage(DisputeLifecycleStage.CATEGORIZATION, "Categorizing dispute")
-        categorization = categorize_dispute(case)
-
-        case.category = categorization.category
-        case.condition = categorization.condition
-        case.add_processing_note(
-            f"Categorized as {categorization.category.value} / {categorization.condition.value} "
-            f"(confidence: {categorization.confidence:.2f}): {categorization.rationale}"
-        )
-
-        if categorization.alternative_conditions:
-            case.add_processing_note(
-                f"Alternative conditions: {[c.value for c in categorization.alternative_conditions]}"
-            )
-
-        # Set dispute amount and currency if not already set
-        if case.dispute_amount is None:
-            case.dispute_amount = case.transaction.amount
-        if case.dispute_currency is None:
-            case.dispute_currency = case.transaction.currency
-
-        # Set filing date if not set
-        if case.dispute_filed_date is None:
-            case.dispute_filed_date = case.created_at
-
-        # Stage 3: Route to sub-agent
-        case.advance_stage(DisputeLifecycleStage.PROCESSING, "Routing to sub-agent")
-        agent = self._get_agent_for_case(case)
-
-        if agent is None:
-            case.add_processing_note("No suitable agent found for this dispute")
-            case.advance_stage(DisputeLifecycleStage.FAILED, "No agent available")
-            return case
-
-        can_handle = await agent.validate(case)
-        if not can_handle:
-            case.add_processing_note(f"Agent {agent.agent_type.value} cannot handle this case")
-            case.advance_stage(DisputeLifecycleStage.FAILED, "Agent validation failed")
-            return case
-
-        # Process through the agent
-        processed_case = await agent.process(case)
-
-        logger.info(
-            "Dispute processed: case=%s category=%s condition=%s stage=%s",
-            processed_case.case_id,
-            processed_case.category,
-            processed_case.condition,
-            processed_case.stage.value,
-        )
-
-        return processed_case
+        raise NotImplementedError("Module 4: Implement _execute_dispute_processing")
 
     def _validate_case(self, case: DisputeCase) -> list[str]:
-        """Perform basic validation on the dispute case."""
-        errors: list[str] = []
+        """Perform basic validation on the dispute case.
 
-        if not case.transaction.transaction_id:
-            errors.append("Missing transaction ID")
-
-        if case.transaction.amount <= 0:
-            errors.append("Transaction amount must be positive")
-
-        if not case.cardholder.cardholder_name:
-            errors.append("Missing cardholder name")
-
-        if not case.cardholder.partial_payment_credential:
-            errors.append("Missing payment credential")
-
-        return errors
+        TODO: Check for:
+        - Missing transaction_id
+        - Amount <= 0
+        - Missing cardholder_name
+        - Missing partial_payment_credential
+        Return a list of error messages (empty if valid).
+        """
+        raise NotImplementedError("Module 4: Implement _validate_case")
 
     def _get_agent_for_case(self, case: DisputeCase) -> BaseDisputeAgent | None:
-        """Route a case to the appropriate sub-agent."""
-        # Pre-arbitration/arbitration routing
-        if case.stage in (
-            DisputeLifecycleStage.PRE_ARBITRATION,
-            DisputeLifecycleStage.PRE_ARBITRATION_RESPONSE,
-            DisputeLifecycleStage.ARBITRATION,
-        ):
-            return self._agents.get(AgentType.PRE_ARBITRATION.value)
+        """Route a case to the appropriate sub-agent.
 
-        # Category-based routing
-        if case.category is not None:
-            agent_key = self._category_agent_map.get(case.category)
-            if agent_key:
-                return self._agents.get(agent_key)
-
-        return None
+        TODO: Route based on:
+        1. If case is in pre-arb/arbitration stage -> PreArbitrationAgent
+        2. Otherwise, use case.category to look up in _category_agent_map
+        """
+        raise NotImplementedError("Module 4: Implement _get_agent_for_case")
