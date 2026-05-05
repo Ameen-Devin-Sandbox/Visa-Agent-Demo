@@ -91,7 +91,7 @@ class PreArbitrationAgent(BaseDisputeAgent):
         """
         raise NotImplementedError("Module 5: Implement _apply_pre_arb_result")
 
-    def _evaluate_pre_arb_with_llm(
+    async def _evaluate_pre_arb_with_llm(
         self, case: DisputeCase, rules_context: str
     ) -> dict[str, Any]:
         """Use the LLM to evaluate a pre-arbitration/arbitration case.
@@ -103,6 +103,6 @@ class PreArbitrationAgent(BaseDisputeAgent):
         - All evidence (separated by acquirer/issuer)
         - Issuer certification
         - Processing notes
-        Call chat_json() with _PRE_ARB_SYSTEM_PROMPT and return result.
+        Call ``await chat_json(...)`` with _PRE_ARB_SYSTEM_PROMPT and return result.
         """
         raise NotImplementedError("Module 5: Implement _evaluate_pre_arb_with_llm")

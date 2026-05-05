@@ -12,7 +12,11 @@ import logging
 from dataclasses import dataclass
 
 from src.llm.openai_client import chat_json
-from src.llm.visa_rules import get_categorization_context
+from src.llm.visa_rules import (
+    get_categorization_context,
+    get_category_conditions,
+    get_category_summaries,
+)
 from src.models.dispute import DisputeCase
 from src.models.enums import (
     DisputeCategory,
@@ -45,17 +49,29 @@ class CategorizationResult:
 _SYSTEM_PROMPT = ""
 
 
-def categorize_dispute(case: DisputeCase) -> CategorizationResult:
+async def categorize_dispute(case: DisputeCase) -> CategorizationResult:
     """Categorize a dispute using OpenAI reasoning over Visa rules.
 
     The LLM analyzes the transaction details, cardholder statement, evidence,
     and fraud indicators against the Visa Core Rules to determine the
     appropriate dispute category and condition.
 
-    TODO: Implement this function:
-    1. Build a user prompt with case details using _build_case_prompt()
-    2. Call chat_json() with the system prompt and user prompt
-    3. Parse the JSON response into a CategorizationResult
+    TODO: Implement this function using a two-stage categorization to reduce
+    the token payload (~75% reduction vs. the legacy single-call approach):
+
+    Stage 1 - Pick a category:
+        Build a prompt using ``get_category_summaries()`` and call
+        ``await chat_json(...)`` to have the LLM choose one of the four
+        categories (10/11/12/13).
+
+    Stage 2 - Pick a condition within that category:
+        Build a follow-up prompt using ``get_category_conditions(category)``
+        and call ``await chat_json(...)`` to have the LLM pick the specific
+        condition. Parse the final JSON response into a CategorizationResult.
+
+    The legacy single-call approach used ``get_categorization_context()`` and
+    is still importable for reference, but it ships all 23 sub-conditions in
+    every request and should not be used for new implementations.
     """
     raise NotImplementedError("Module 1: Implement categorize_dispute")
 

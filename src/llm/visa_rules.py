@@ -121,6 +121,84 @@ def get_compelling_evidence_rules() -> str:
     return get_section("11.5.2")
 
 
+def get_category_summaries() -> str:
+    """Get condensed category-level summaries for first-pass categorization.
+
+    Used by the two-stage categorizer: stage one asks the LLM to choose one
+    of the four high-level categories (10/11/12/13) using only this
+    condensed context, instead of shipping all 23 sub-condition sections
+    in every request.
+    """
+    parts = [
+        get_section("11.6"),
+        "--- CATEGORY 10: FRAUD ---",
+        get_section("11.7.1"),
+        "--- CATEGORY 11: AUTHORIZATION ---",
+        get_section("11.8.1"),
+        "--- CATEGORY 12: PROCESSING ERRORS ---",
+        get_section("11.9.1"),
+        "--- CATEGORY 13: CONSUMER DISPUTES ---",
+        get_section("11.10.1"),
+    ]
+    return "\n\n".join(parts)
+
+
+def get_category_conditions(category: str) -> str:
+    """Get condition-level details for a specific category.
+
+    Used by the two-stage categorizer: stage two narrows down to the
+    specific condition within the category chosen in stage one.
+
+    Args:
+        category: Category code as a string ("10", "11", "12", "13").
+
+    Returns:
+        Concatenated section text for every condition in the category, or
+        an empty string if the category code is unknown.
+    """
+    category_sections: dict[str, list[str]] = {
+        "10": ["11.7.1", "11.7.2", "11.7.3", "11.7.4", "11.7.5", "11.7.6"],
+        "11": ["11.8.1", "11.8.2", "11.8.3"],
+        "12": ["11.9.1", "11.9.2", "11.9.3", "11.9.4", "11.9.5", "11.9.6"],
+        "13": [
+            "11.10.1",
+            "11.10.2",
+            "11.10.3",
+            "11.10.4",
+            "11.10.5",
+            "11.10.6",
+            "11.10.7",
+            "11.10.8",
+            "11.10.9",
+            "11.10.10",
+        ],
+    }
+    sections = category_sections.get(category, [])
+    return "\n\n".join(get_section(s) for s in sections)
+
+
+def preload_all_sections() -> None:
+    """Pre-parse and cache all known sections at startup.
+
+    Eagerly populates ``_section_cache`` so the first dispute request does
+    not pay the regex parsing cost. Safe to call multiple times; subsequent
+    calls are essentially no-ops because every section is cached.
+    """
+    _load_full_text()
+    known_sections = [
+        "11.1", "11.2", "11.5", "11.5.2", "11.6",
+        "11.7", "11.7.1", "11.7.2", "11.7.3", "11.7.4", "11.7.5", "11.7.6",
+        "11.8", "11.8.1", "11.8.2", "11.8.3",
+        "11.9", "11.9.1", "11.9.2", "11.9.3", "11.9.4", "11.9.5", "11.9.6",
+        "11.10", "11.10.1", "11.10.2", "11.10.3", "11.10.4", "11.10.5",
+        "11.10.6", "11.10.7", "11.10.8", "11.10.9", "11.10.10",
+        "11.11",
+    ]
+    for section in known_sections:
+        get_section(section)
+    logger.info("Pre-loaded %d sections into cache", len(_section_cache))
+
+
 def get_categorization_context() -> str:
     """Get the context needed for dispute categorization.
 

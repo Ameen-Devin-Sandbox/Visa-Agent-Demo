@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from src.api.routes import router, set_brain
+from src.llm.visa_rules import preload_all_sections
 from src.orchestrator.brain import DisputeBrain
 from src.queue.task_queue import DisputeTaskQueue
 
@@ -21,6 +22,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager - initializes and tears down the brain."""
     logger.info("Initializing Visa Disputes Processing Brain...")
+
+    # Pre-parse all Visa rules sections so the first dispute request does
+    # not pay the regex parsing cost.
+    preload_all_sections()
 
     # Initialize the task queue and brain
     task_queue = DisputeTaskQueue()

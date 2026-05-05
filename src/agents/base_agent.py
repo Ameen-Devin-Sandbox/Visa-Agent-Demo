@@ -66,7 +66,7 @@ class BaseDisputeAgent(ABC):
         """
         raise NotImplementedError("Module 2: Implement _should_escalate_to_human")
 
-    def _evaluate_dispute_with_llm(
+    async def _evaluate_dispute_with_llm(
         self,
         case: DisputeCase,
         rules_context: str,
@@ -78,6 +78,6 @@ class BaseDisputeAgent(ABC):
         1. Build a user prompt with all case details (case ID, category, condition,
            transaction details, cardholder statement, evidence, etc.)
         2. Append the rules_context as reference
-        3. Call chat_json(system_prompt, user_prompt) and return the result
+        3. Call ``await chat_json(system_prompt, user_prompt)`` and return the result
         """
         raise NotImplementedError("Module 2: Implement _evaluate_dispute_with_llm")

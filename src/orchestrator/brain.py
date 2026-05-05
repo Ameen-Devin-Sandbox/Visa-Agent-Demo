@@ -154,12 +154,16 @@ class DisputeBrain:
     # Internal methods
 
     async def _worker_loop(self, worker_id: str) -> None:
-        """Main worker loop that continuously processes tasks from the queue."""
+        """Main worker loop that continuously processes tasks from the queue.
+
+        Workers wake instantly when a task is enqueued via the queue's
+        internal ``asyncio.Event`` rather than polling on a fixed interval.
+        """
         while self._running:
             try:
                 task = await self._queue.dequeue()
                 if task is None:
-                    await asyncio.sleep(0.5)
+                    await self._queue.wait_for_task()
                     continue
                 try:
                     result = await self._handle_task(task)
@@ -194,7 +198,7 @@ class DisputeBrain:
 
         Stage 2 - Categorization:
           - Advance to CATEGORIZATION
-          - Call categorize_dispute(case) to get category + condition
+          - Call ``await categorize_dispute(case)`` to get category + condition
           - Set case.category and case.condition
           - Set dispute_amount, dispute_currency, dispute_filed_date defaults
 

@@ -12,12 +12,15 @@ from unittest.mock import patch
 import pytest
 
 
-def _mock_chat_json(system_prompt: str, user_prompt: str, **kwargs: object) -> dict:
+async def _mock_chat_json(system_prompt: str, user_prompt: str, **kwargs: object) -> dict:
     """Smart mock for chat_json that returns contextually appropriate responses.
 
     Analyzes the system and user prompts to determine what kind of call is
     being made (categorization, agent evaluation, pre-arbitration) and returns
     a response that matches the expected format and is contextually sensible.
+
+    This mock is ``async def`` to match the new async ``chat_json`` signature
+    so callers can ``await`` it the same way they would the real client.
     """
     lower_system = system_prompt.lower()
     lower_user = user_prompt.lower()
@@ -654,8 +657,20 @@ def _mock_visa_rules_loading(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("src.llm.visa_rules.get_compelling_evidence_rules", mock_get_rules)
     monkeypatch.setattr("src.llm.visa_rules.get_dispute_overview", mock_get_rules)
 
+    # Two-stage categorization helpers (return condensed mock context)
+    monkeypatch.setattr("src.llm.visa_rules.get_category_summaries", mock_get_rules)
+    monkeypatch.setattr(
+        "src.llm.visa_rules.get_category_conditions",
+        lambda category: "[Mock Category Conditions]",
+    )
+
     # Patch where imported directly in agent/categorizer modules
     monkeypatch.setattr("src.rules.categorizer.get_categorization_context", mock_get_categorization_context)
+    monkeypatch.setattr("src.rules.categorizer.get_category_summaries", mock_get_rules)
+    monkeypatch.setattr(
+        "src.rules.categorizer.get_category_conditions",
+        lambda category: "[Mock Category Conditions]",
+    )
     monkeypatch.setattr("src.agents.fraud_agent.get_fraud_rules", mock_get_rules)
     monkeypatch.setattr("src.agents.authorization_agent.get_authorization_rules", mock_get_rules)
     monkeypatch.setattr("src.agents.processing_errors_agent.get_processing_errors_rules", mock_get_rules)

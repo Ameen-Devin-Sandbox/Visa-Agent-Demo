@@ -34,6 +34,9 @@ class DisputeTaskQueue:
         self._task_index: dict[str, DisputeTask] = {}
         self._stats: dict[str, int] = defaultdict(int)
         self._running = False
+        # Signaled whenever a task is enqueued so workers can wake instantly
+        # instead of polling for new work on a fixed interval.
+        self._notify = asyncio.Event()
 
     async def enqueue(self, task: DisputeTask) -> str:
         """Add a task to the queue.
@@ -48,6 +51,7 @@ class DisputeTaskQueue:
         await queue.put(task)
         self._task_index[task.task_id] = task
         self._stats["enqueued"] += 1
+        self._notify.set()
         logger.info(
             "Task enqueued: %s (priority=%s, case=%s, action=%s)",
             task.task_id,
@@ -140,6 +144,17 @@ class DisputeTaskQueue:
     def get_dead_letter_tasks(self) -> list[DisputeTask]:
         """Get all tasks in the dead letter queue."""
         return list(self._dead_letter.values())
+
+    async def wait_for_task(self) -> None:
+        """Block until a task is enqueued.
+
+        Workers call this when ``dequeue()`` returns ``None`` so they wake
+        instantly when ``enqueue()`` runs, rather than polling on a fixed
+        interval. The event is cleared on entry so the next ``enqueue()``
+        deterministically wakes one waiter.
+        """
+        self._notify.clear()
+        await self._notify.wait()
 
     @property
     def is_empty(self) -> bool:
